@@ -271,6 +271,9 @@ def create_node(
     node_label = '\n'.join(label_items)
 
     node["label"] = node_label
+    # vis.js defaults to dark label text, which is unreadable on Nautobot's dark
+    # theme. Light text with a dark halo stays legible on both themes.
+    node["font"] = {"color": "#e6e6e6", "strokeWidth": 3, "strokeColor": "rgba(0,0,0,0.85)"}
     node["shape"] = "image"
     node["href"] = device.get_absolute_url()
     node["image"] = get_image_for_entity(device)
