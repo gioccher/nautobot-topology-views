@@ -447,9 +447,11 @@ def get_topology_data(
 
         ports = chain(interfaces, frontports, rearports)
         for port in ports:
-            for link_peer in port.link_peers:
-                if hasattr(link_peer, 'device') and link_peer.device.id not in device_ids:
-                    device_ids.append(link_peer.device.id)
+            # Nautobot has no NetBox-style `link_peers` list; a termination has at
+            # most one cable peer, exposed via get_cable_peer().
+            link_peer = port.get_cable_peer()
+            if link_peer is not None and hasattr(link_peer, 'device') and link_peer.device.id not in device_ids:
+                device_ids.append(link_peer.device.id)
 
         if show_logical_connections:
             path_complete_interfaces = Interface.objects.filter(
@@ -554,9 +556,10 @@ def get_topology_data(
                 power_link_name = ""
                 if power_feed.pk not in nodes_powerfeed:
                     if not show_unconnected:
-                        if power_feed.link_peers[0].device_id in device_ids:
+                        power_peer = power_feed.get_cable_peer()
+                        if power_peer is not None and power_peer.device_id in device_ids:
                             nodes_powerfeed[power_feed.pk] = power_feed
-                            power_link_name = power_feed.link_peers[0].name
+                            power_link_name = power_peer.name
                     else:
                         nodes_powerfeed[power_feed.pk] = power_feed
 
