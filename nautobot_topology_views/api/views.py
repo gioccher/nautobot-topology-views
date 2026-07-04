@@ -158,8 +158,8 @@ class SaveRoleImageViewSet(ReadOnlyModelViewSet):
     queryset = Role.objects.none()
     serializer_class = RoleImageSerializer
     permission_required = (
-        "dcim.add_role",
-        "dcim.change_role",
+        "extras.add_role",
+        "extras.change_role",
     )
 
     @action(detail=False, methods=["post"])

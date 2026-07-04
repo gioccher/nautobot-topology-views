@@ -112,7 +112,7 @@ menu_items = (
                     NavMenuItem(
                         link="plugins:nautobot_topology_views:images",
                         name="Icons",
-                        permissions=["dcim.view_location", "dcim.view_role"],
+                        permissions=["dcim.view_location", "extras.view_role"],
                     ),
                     NavMenuItem(
                         link="plugins:nautobot_topology_views:individualoptions",
