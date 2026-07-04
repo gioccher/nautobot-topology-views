@@ -453,13 +453,13 @@ def get_topology_data(
 
     if show_neighbors:
         interfaces = Interface.objects.filter(
-            Q(device_id__in=device_ids)
+            Q(device__in=device_ids)
         )
         frontports = FrontPort.objects.filter(
-            Q(device_id__in=device_ids)
+            Q(device__in=device_ids)
         )
         rearports = RearPort.objects.filter(
-            Q(device_id__in=device_ids)
+            Q(device__in=device_ids)
         )
 
         ports = chain(interfaces, frontports, rearports)
@@ -472,9 +472,13 @@ def get_topology_data(
                 device_ids.append(link_peer_device.id)
 
         if show_logical_connections:
+            # Module-hosted interfaces: Nautobot 3.x Module has no queryable
+            # `device` FK (it's a property), and `module__device` is a
+            # ForeignKeyWithAutoRelatedName the ORM refuses to join. Reach the
+            # device via the module bay: module -> parent_module_bay -> parent_device.
             path_complete_interfaces = Interface.objects.filter(
                 Q(_path__destination_id__isnull=False)
-                & (Q(device_id__in=device_ids) | Q(module__device_id__in=device_ids))
+                & (Q(device__in=device_ids) | Q(module__parent_module_bay__parent_device__in=device_ids))
             )
             for path_complete_interface in path_complete_interfaces:
                 connected_endpoint = path_complete_interface.connected_endpoint
@@ -620,9 +624,11 @@ def get_topology_data(
             nodes.append(create_node(d, save_coords, node_label_items, group_id))
 
     if show_logical_connections:
+        # Module-hosted device reached via the module bay (see note above); a
+        # direct `module__device` join is rejected on Nautobot 3.x.
         interfaces = Interface.objects.filter(
             Q(_path__destination_id__isnull=False)
-            & (Q(device_id__in=device_ids) | Q(module__device_id__in=device_ids))
+            & (Q(device__in=device_ids) | Q(module__parent_module_bay__parent_device__in=device_ids))
         )
 
         for interface in interfaces:
