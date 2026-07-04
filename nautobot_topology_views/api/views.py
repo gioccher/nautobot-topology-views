@@ -50,21 +50,31 @@ class SaveCoordsViewSet(ReadOnlyModelViewSet):
         group_id = request.data.get("group", "None")
 
         actual_device = None
-        if device_id.startswith("c"):
-            device_id = device_id.lstrip("c")
-            actual_device = Circuit.objects.get(id=device_id)
-            model_name = 'CircuitCoordinate'
-        elif device_id.startswith("p"):
-            device_id = device_id.lstrip("p")
-            actual_device = PowerPanel.objects.get(id=device_id)
-            model_name = 'PowerPanelCoordinate'
-        elif device_id.startswith("f"):
-            device_id = device_id.lstrip("f")
-            actual_device = PowerFeed.objects.get(id=device_id)
-            model_name = 'PowerFeedCoordinate'
-        elif device_id.isnumeric():
-            actual_device = Device.objects.get(id=device_id)
+        model_name = None
+        # Nautobot pks are UUIDs. Device nodes carry the bare UUID; circuit /
+        # power-panel / power-feed nodes are prefixed 'c' / 'p' / 'f'. Test UUID-ness
+        # first so a device UUID that happens to start with c/p/f is not misrouted;
+        # strip exactly one prefix char; use filter().first() so a bad id returns 400
+        # instead of an uncaught DoesNotExist 500.
+        def _is_uuid(value):
+            try:
+                uuid.UUID(str(value))
+                return True
+            except (ValueError, TypeError):
+                return False
+
+        if _is_uuid(device_id):
+            actual_device = Device.objects.filter(id=device_id).first()
             model_name = 'Coordinate'
+        elif device_id and device_id[0] == "c":
+            actual_device = Circuit.objects.filter(id=device_id[1:]).first()
+            model_name = 'CircuitCoordinate'
+        elif device_id and device_id[0] == "p":
+            actual_device = PowerPanel.objects.filter(id=device_id[1:]).first()
+            model_name = 'PowerPanelCoordinate'
+        elif device_id and device_id[0] == "f":
+            actual_device = PowerFeed.objects.filter(id=device_id[1:]).first()
+            model_name = 'PowerFeedCoordinate'
 
         if not actual_device:
             return Response({"status": "invalid node_id in body"}, status=400)
@@ -146,7 +156,10 @@ class ExportTopoToXML(ViewSet):
                 grid_size=grid_size,
                 node_label_items=node_label_items,
             )
-            xml_data = export_data_to_xml(topo_data).decode('utf-8').replace('\n', '&#xa;')
+            raw_xml = export_data_to_xml(topo_data)
+            # export_data_to_xml returns bytes normally, but '' (str) when there is no
+            # data to render; guard so an empty diagram doesn't crash on .decode().
+            xml_data = (raw_xml.decode('utf-8') if isinstance(raw_xml, bytes) else raw_xml).replace('\n', '&#xa;')
 
             return HttpResponse(xml_data, content_type="application/xml; charset=utf-8")
         else:
