@@ -11,7 +11,6 @@ from nautobot.apps.forms import (
 )
 from nautobot.circuits.models import Circuit
 from nautobot.core.forms import BOOLEAN_WITH_BLANK_CHOICES
-from nautobot.dcim.choices import DeviceStatusChoices
 from nautobot.dcim.form_mixins import LocatableModelFilterFormMixin
 from nautobot.dcim.models import (
     Device,
@@ -24,7 +23,7 @@ from nautobot.dcim.models import (
     Rack,
 )
 from nautobot.extras.forms import LocalContextFilterForm
-from nautobot.extras.models import Role
+from nautobot.extras.models import Role, Status
 from nautobot.tenancy.forms import TenancyFilterForm
 
 from nautobot_topology_views.choices import NodeLabelItems
@@ -58,7 +57,7 @@ class DeviceFilterForm(
         'manufacturer_id', 'device_type_id', 'platform_id',
         'tenant_group_id', 'tenant_id',
         'console_ports', 'console_server_ports', 'power_ports', 'power_outlets', 'interfaces', 'pass_through_ports',
-        'has_primary_ip', 'has_oob_ip', 'virtual_chassis_member', 'local_context_data',
+        'has_primary_ip', 'virtual_chassis_member', 'local_context_data',
     ]
     group = forms.ModelChoiceField(
         queryset=CoordinateGroup.objects.all(),
@@ -87,10 +86,10 @@ class DeviceFilterForm(
         },
         label=_('Rack'),
     )
-    status = forms.MultipleChoiceField(
-        choices=DeviceStatusChoices,
+    status = DynamicModelMultipleChoiceField(
+        queryset=Status.objects.all(),
         required=False,
-        label=_('Device Status')
+        label=_('Device Status'),
     )
     role_id = DynamicModelMultipleChoiceField(
         queryset=Role.objects.all(),
@@ -173,13 +172,6 @@ class DeviceFilterForm(
     has_primary_ip = forms.NullBooleanField(
         required=False,
         label=_('Has a primary IP'),
-        widget=forms.Select(
-            choices=BOOLEAN_WITH_BLANK_CHOICES
-        )
-    )
-    has_oob_ip = forms.NullBooleanField(
-        required=False,
-        label=_('Has an OOB IP'),
         widget=forms.Select(
             choices=BOOLEAN_WITH_BLANK_CHOICES
         )

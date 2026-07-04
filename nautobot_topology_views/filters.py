@@ -4,10 +4,10 @@ from nautobot.apps.filters import (
     MultiValueCharFilter,
     MultiValueMACAddressFilter,
     NautobotFilterSet,
+    StatusFilter,
     TreeNodeMultipleChoiceFilter,
 )
 from nautobot.circuits.models import Circuit
-from nautobot.dcim.choices import DeviceStatusChoices
 from nautobot.dcim.filter_mixins import LocatableModelFilterSetMixin
 from nautobot.dcim.models import (
     Device,
@@ -42,10 +42,10 @@ class DeviceFilterSet(NautobotFilterSet, TenancyModelFilterSetMixin, LocatableMo
         label="Manufacturer (ID)",
     )
     manufacturer = django_filters.ModelMultipleChoiceFilter(
-        field_name='device_type__manufacturer__slug',
+        field_name='device_type__manufacturer__name',
         queryset=Manufacturer.objects.all(),
-        to_field_name='slug',
-        label="Manufacturer (slug)",
+        to_field_name='name',
+        label="Manufacturer (name)",
     )
     device_type_id = django_filters.ModelMultipleChoiceFilter(
         queryset=DeviceType.objects.all(),
@@ -71,12 +71,11 @@ class DeviceFilterSet(NautobotFilterSet, TenancyModelFilterSetMixin, LocatableMo
         field_name="rack_id",
         label="Rack (ID)",
     )
-    status = django_filters.MultipleChoiceFilter(
-        choices=DeviceStatusChoices,
-        null_value=None,
-    )
+    # Device.status is a StatusField FK on Nautobot; filtering it with raw choice
+    # strings raises ValidationError. StatusFilter matches by name or pk.
+    status = StatusFilter()
     mac_address = MultiValueMACAddressFilter(
-        field_name='interfaces__mac_addresses__mac_address',
+        field_name='interfaces__mac_address',
         label="MAC address",
     )
     serial = MultiValueCharFilter(
@@ -110,10 +109,7 @@ class DeviceFilterSet(NautobotFilterSet, TenancyModelFilterSetMixin, LocatableMo
         method='_has_primary_ip',
         label="Has a primary IP",
     )
-    has_oob_ip = django_filters.BooleanFilter(
-        method='_has_oob_ip',
-        label="Has an out-of-band IP",
-    )
+    # (removed) has_oob_ip: core Device has no oob_ip field on Nautobot 3.x.
     virtual_chassis_member = django_filters.BooleanFilter(
         method='_virtual_chassis_member',
         label="Is a virtual chassis member",
@@ -153,12 +149,6 @@ class DeviceFilterSet(NautobotFilterSet, TenancyModelFilterSetMixin, LocatableMo
 
     def _has_primary_ip(self, queryset, name, value):
         params = Q(primary_ip4__isnull=False) | Q(primary_ip6__isnull=False)
-        if value:
-            return queryset.filter(params)
-        return queryset.exclude(params)
-
-    def _has_oob_ip(self, queryset, name, value):
-        params = Q(oob_ip__isnull=False)
         if value:
             return queryset.filter(params)
         return queryset.exclude(params)
