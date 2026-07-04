@@ -146,8 +146,8 @@ def create_node(
             node_content += (
                 f"<tr><th>Provider: </th><td>{device.provider.name}</td></tr>"
             )
-        if device.type is not None:
-            node_content += f"<tr><th>Type: </th><td>{device.type.name}</td></tr>"
+        if device.circuit_type is not None:
+            node_content += f"<tr><th>Type: </th><td>{device.circuit_type.name}</td></tr>"
     elif isinstance(device, PowerPanel):
         dev_name = device.name
         node["id"] = f"p{device.pk}"
@@ -500,21 +500,24 @@ def get_topology_data(
             termination_a = {}
             termination_b = {}
             circuit_model = {}
-            if circuit_termination.cable is not None and bool(circuit_termination.cable.a_terminations) and bool(circuit_termination.cable.b_terminations):
+            # Nautobot's Cable exposes single GenericForeignKeys termination_a /
+            # termination_b (NOT NetBox's list-valued a_terminations/b_terminations),
+            # and a CircuitTermination's non-cable end is its provider_network.
+            if circuit_termination.cable is not None and bool(circuit_termination.cable.termination_a) and bool(circuit_termination.cable.termination_b):
                 termination_a = create_circuit_termination(
-                    circuit_termination.cable.a_terminations[0]
+                    circuit_termination.cable.termination_a
                 )
                 termination_b = create_circuit_termination(
-                    circuit_termination.cable.b_terminations[0]
+                    circuit_termination.cable.termination_b
                 )
-            elif circuit_termination.termination is not None:
+            elif circuit_termination.provider_network is not None:
                 if (
-                    circuit_termination.termination_id
+                    circuit_termination.provider_network_id
                     not in nodes_provider_networks
                 ):
                     nodes_provider_networks[
-                        circuit_termination.termination.pk
-                    ] = circuit_termination.termination
+                        circuit_termination.provider_network.pk
+                    ] = circuit_termination.provider_network
 
             if bool(termination_a) and bool(termination_b):
                 circuit_model = {
@@ -536,8 +539,8 @@ def get_topology_data(
 
                 circuit_has_connections = False
                 for termination in [
-                    circuit_termination.cable.a_terminations[0],
-                    circuit_termination.cable.b_terminations[0],
+                    circuit_termination.cable.termination_a,
+                    circuit_termination.cable.termination_b,
                 ]:
                     if not isinstance(termination, CircuitTermination):
                         termination_device = get_termination_device(termination)
@@ -610,8 +613,9 @@ def get_topology_data(
                     )
                 )
 
-                if power_feed.cable_id is not None:
-                    cable_ids[power_feed.cable_id][power_feed.cable_end] = termination_b
+                # (removed) NetBox stored the cable end via power_feed.cable_end into
+                # a write-only cable_ids dict. Nautobot has no cable_end field and the
+                # dict is never read, so this was dead code that raised AttributeError.
 
         for d in nodes_powerfeed.values():
             nodes.append(create_node(d, save_coords, node_label_items ,group_id))
