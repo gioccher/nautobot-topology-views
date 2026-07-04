@@ -950,10 +950,10 @@ class LocationTopologyView(PermissionRequiredMixin, View):
 
 class TopologyImagesView(PermissionRequiredMixin, View):
     permission_required = (
-        "dcim.view_site",
-        "dcim.view_role",
-        "dcim.add_role",
-        "dcim.change_role",
+        "dcim.view_location",
+        "extras.view_role",
+        "extras.add_role",
+        "extras.change_role",
     )
 
     def get(self, request: HttpRequest):
