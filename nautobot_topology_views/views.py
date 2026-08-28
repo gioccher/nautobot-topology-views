@@ -35,6 +35,12 @@ from nautobot.dcim.models import (
 from nautobot.extras.models import Role, Tag
 from nautobot.extras.views import ObjectChangeLogView
 
+# Nautobot 3.2 replaced the Cable termination GFK fields and the PathEndpoint
+# `_path` FK with a CableToCableTermination join table and a `cable_paths`
+# GenericRelation (dcim migrations 0088-0096). Feature-detect so this app
+# keeps working on both older and newer Nautobot releases.
+HAS_CABLE_PATHS = hasattr(Interface, "cable_paths")
+
 import nautobot_topology_views.models
 from nautobot_topology_views.choices import NodeLabelItems
 from nautobot_topology_views.filters import (
@@ -132,8 +138,9 @@ def create_node(
             node_content += (
                 f"<tr><th>Provider: </th><td>{device.provider.name}</td></tr>"
             )
-        if device.type is not None:
-            node_content += f"<tr><th>Type: </th><td>{device.type.name}</td></tr>"
+        circuit_type = getattr(device, "circuit_type", None) or getattr(device, "type", None)
+        if circuit_type is not None:
+            node_content += f"<tr><th>Type: </th><td>{circuit_type.name}</td></tr>"
     elif isinstance(device, PowerPanel):
         dev_name = device.name
         node["id"] = f"p{device.pk}"
@@ -367,6 +374,19 @@ def create_edge(
     return edge
 
 
+def cable_side_endpoints(cable, side):
+    """Endpoint objects on one cable side ('a'/'b') across Nautobot versions.
+
+    Nautobot 3.2's terminations_a/terminations_b return CableToCableTermination
+    join rows (each carrying .termination); the older NetBox-style
+    a_terminations/b_terminations were the endpoint objects directly.
+    """
+    rows = getattr(cable, f"terminations_{side}", None)
+    if rows is not None:
+        return [r.termination for r in rows if getattr(r, "termination", None) is not None]
+    return list(getattr(cable, f"{side}_terminations", []) or [])
+
+
 def create_circuit_termination(termination):
     if isinstance(termination, CircuitTermination):
         return {
@@ -453,7 +473,7 @@ def get_topology_data(
 
         if show_logical_connections:
             path_complete_interfaces = Interface.objects.filter(
-                Q(_path__destination_id__isnull=False) & Q(device_id__in=device_ids)
+                (Q(cable_paths__destination_id__isnull=False) if HAS_CABLE_PATHS else Q(_path__destination_id__isnull=False)) & Q(device_id__in=device_ids)
             )
             for path_complete_interface in path_complete_interfaces:
                 connected_endpoint = path_complete_interface.connected_endpoint
@@ -477,21 +497,24 @@ def get_topology_data(
             termination_a = {}
             termination_b = {}
             circuit_model = {}
-            if circuit_termination.cable is not None and bool(circuit_termination.cable.a_terminations) and bool(circuit_termination.cable.b_terminations):
-                termination_a = create_circuit_termination(
-                    circuit_termination.cable.a_terminations[0]
-                )
-                termination_b = create_circuit_termination(
-                    circuit_termination.cable.b_terminations[0]
-                )
-            elif circuit_termination.termination is not None:
+            cable_endpoints_a = cable_endpoints_b = []
+            if circuit_termination.cable is not None:
+                cable_endpoints_a = cable_side_endpoints(circuit_termination.cable, "a")
+                cable_endpoints_b = cable_side_endpoints(circuit_termination.cable, "b")
+            if bool(cable_endpoints_a) and bool(cable_endpoints_b):
+                termination_a = create_circuit_termination(cable_endpoints_a[0])
+                termination_b = create_circuit_termination(cable_endpoints_b[0])
+            elif getattr(circuit_termination, "provider_network", None) is not None:
+                # Nautobot has no generic CircuitTermination.termination attribute
+                # (a NetBox-ism); the non-cable case that matters here is a
+                # termination pointing at a provider network.
                 if (
-                    circuit_termination.termination_id
+                    circuit_termination.provider_network_id
                     not in nodes_provider_networks
                 ):
                     nodes_provider_networks[
-                        circuit_termination.termination.pk
-                    ] = circuit_termination.termination
+                        circuit_termination.provider_network.pk
+                    ] = circuit_termination.provider_network
 
             if bool(termination_a) and bool(termination_b):
                 circuit_model = {
@@ -513,8 +536,8 @@ def get_topology_data(
 
                 circuit_has_connections = False
                 for termination in [
-                    circuit_termination.cable.a_terminations[0],
-                    circuit_termination.cable.b_terminations[0],
+                    cable_endpoints_a[0],
+                    cable_endpoints_b[0],
                 ]:
                     if not isinstance(termination, CircuitTermination):
                         if (
@@ -594,11 +617,12 @@ def get_topology_data(
 
     if show_logical_connections:
         interfaces = Interface.objects.filter(
-            Q(_path__destination_id__isnull=False) & Q(device_id__in=device_ids)
+            (Q(cable_paths__destination_id__isnull=False) if HAS_CABLE_PATHS else Q(_path__destination_id__isnull=False)) & Q(device_id__in=device_ids)
         )
 
         for interface in interfaces:
-            destination = interface._path.destination
+            path_obj = interface.path if HAS_CABLE_PATHS else interface._path
+            destination = path_obj.destination if path_obj else None
             if destination is not None:
                 if isinstance(destination, Interface):
                     if destination.device.id not in device_ids:
@@ -623,9 +647,23 @@ def get_topology_data(
                     nodes_devices[destination.device.id] = destination.device
 
     if show_cables:
-        cables: QuerySet[Cable] = Cable.objects.filter(
-            Q(_termination_a_device_id__in=device_ids) | Q(_termination_b_device_id__in=device_ids)
-        ).select_related("termination_a_type", "termination_b_type")
+        if HAS_CABLE_PATHS:
+            # Nautobot >= 3.2: the GFK device-id fields are gone; filter through the
+            # typed termination M2Ms and prefetch the join rows so the backward-compat
+            # termination_a/termination_b properties resolve without extra queries.
+            cables: QuerySet[Cable] = Cable.objects.filter(
+                Q(interfaces__device_id__in=device_ids)
+                | Q(console_ports__device_id__in=device_ids)
+                | Q(console_server_ports__device_id__in=device_ids)
+                | Q(power_ports__device_id__in=device_ids)
+                | Q(power_outlets__device_id__in=device_ids)
+                | Q(front_ports__device_id__in=device_ids)
+                | Q(rear_ports__device_id__in=device_ids)
+            ).distinct().prefetch_related("terminations")
+        else:
+            cables: QuerySet[Cable] = Cable.objects.filter(
+                Q(_termination_a_device_id__in=device_ids) | Q(_termination_b_device_id__in=device_ids)
+            ).select_related("termination_a_type", "termination_b_type")
 
         for cable in cables:
             type_a = cable.termination_a_type.model if cable.termination_a_type else None
@@ -646,11 +684,11 @@ def get_topology_data(
             if not hasattr(term_a, "device") or not hasattr(term_b, "device"):
                 continue
 
-            if cable._termination_a_device_id not in nodes_devices:
-                nodes_devices[cable._termination_a_device_id] = term_a.device
+            if term_a.device_id not in nodes_devices:
+                nodes_devices[term_a.device_id] = term_a.device
 
-            if cable._termination_b_device_id not in nodes_devices:
-                nodes_devices[cable._termination_b_device_id] = term_b.device
+            if term_b.device_id not in nodes_devices:
+                nodes_devices[term_b.device_id] = term_b.device
 
             termination_a = {
                 "termination_name": term_a.name,
