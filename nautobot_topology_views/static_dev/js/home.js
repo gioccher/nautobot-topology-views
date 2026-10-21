@@ -30,8 +30,8 @@ function generatePortSVG(text) {
     const textY = svgHeight / 2;
 
     // generate SVG
-	return 'data:image/svg+xml;charset=utf-8,' + 
-    encodeURIComponent( 
+	return 'data:image/svg+xml;charset=utf-8,' +
+    encodeURIComponent(
         '<svg xmlns="http://www.w3.org/2000/svg" width="' + (svgWidth) + '" height="' + (svgHeight) + '">' +
         '<rect x="' + rectX + '" y="' + rectY + '" rx="4" ry="4" width="' + (rectWidth) + '" height="' + (rectHeight) + '" fill="#ffdf3f" stroke="#ffc93f" stroke-width="' + (rectBorderWidth) + '"/>' +
         '<text x="' + textX + '" y="' + textY + '" font-family="' + fontFamily + '" font-size="' + (fontSize) + '" fill="black" text-anchor="middle" dominant-baseline="middle">' + text + '</text>' +
@@ -155,7 +155,7 @@ const coordSaveCheckbox = document.querySelector('#id_save_coords')
                 y -= gridSize;
             }
         }
-        y = y - y % gridSize;    
+        y = y - y % gridSize;
 
         return {
             x: x,
@@ -198,7 +198,7 @@ const coordSaveCheckbox = document.querySelector('#id_save_coords')
         }
 
         canvascontext.strokeStyle = '#777777';
-        canvascontext.stroke();        
+        canvascontext.stroke();
     }
 
     function drawGridSnapHint(canvascontext) {
@@ -219,7 +219,7 @@ const coordSaveCheckbox = document.querySelector('#id_save_coords')
                     canvascontext.lineTo(pos.x, pos.y);
                     canvascontext.strokeStyle = '#FF3D3D';
                     canvascontext.stroke();
-        
+
                     canvascontext.beginPath();
                     canvascontext.arc(pos.x, pos.y, 10, 0, 2 * Math.PI);
                     canvascontext.fillStyle = '#9C0000';
@@ -261,10 +261,10 @@ const coordSaveCheckbox = document.querySelector('#id_save_coords')
                     }
                     catch (e) {
                         console.log([
-                            'Error while executing window.nodes.update()', 
-                            'nodeId: ' + nodeId, 
-                            'nodeKey: ' + nodeKey, 
-                            'x: ' + nodePosition.x, 
+                            'Error while executing window.nodes.update()',
+                            'nodeId: ' + nodeId,
+                            'nodeKey: ' + nodeKey,
+                            'x: ' + nodePosition.x,
                             'y: ' + nodePosition.y
                         ]);
                         console.log(e);
@@ -316,7 +316,7 @@ const coordSaveCheckbox = document.querySelector('#id_save_coords')
         if(group_locations != null && group_locations == 'on') { drawGroupRectangles(canvascontext, groupedNodeLocations, locationRectParams); }
         if(group_racks != null && group_racks == 'on') { drawGroupRectangles(canvascontext, groupedNodeRacks, rackRectParams); }
         if(group_virtualchassis != null && group_virtualchassis == 'on') { drawGroupRectangles(canvascontext, groupedNodeVirtualchassis, virtualchassisRectParams); }
- 
+
         drawGridSnapHint(canvascontext);
     })
 
@@ -398,13 +398,13 @@ const coordSaveCheckbox = document.querySelector('#id_save_coords')
         rectangle expects an object that consists of the following keys:
         ctx: canvas context on which the rectangle should be drawn
         x: x-coordinate of top left point of the rectangle
-        y: y-coordinate of top left point of the rectangle 
-        width: width of rectangle 
-        height: height of rectangle 
-        lineWidth: border width 
-        color: border color 
+        y: y-coordinate of top left point of the rectangle
+        width: width of rectangle
+        height: height of rectangle
+        lineWidth: border width
+        color: border color
         text: a string to be placed where you want it to be
-        textPaddingX: x-position of the text 
+        textPaddingX: x-position of the text
         textPaddingY: y-position of the text
         font: text font */
     function drawGroupRectangle(rectangle) {
@@ -417,7 +417,7 @@ const coordSaveCheckbox = document.querySelector('#id_save_coords')
         // Draw text
         rectangle.ctx.font = rectangle.font;
         rectangle.ctx.fillStyle = rectangle.color;
-        rectangle.ctx.fillText(rectangle.text, rectangle.x + rectangle.textPaddingX, rectangle.y + rectangle.textPaddingY); 
+        rectangle.ctx.fillText(rectangle.text, rectangle.x + rectangle.textPaddingX, rectangle.y + rectangle.textPaddingY);
 
         allRectangles.push({category: rectangle.category, id: rectangle.id, x1: rectangle.x, y1: rectangle.y, x2: rectangle.x + rectangle.width, y2: rectangle.y + rectangle.height, border: rectangle.lineWidth})
     }
@@ -432,7 +432,7 @@ const coordSaveCheckbox = document.querySelector('#id_save_coords')
         textPaddingY: text y-padding, calculated from the lower left point of the text (int)
         font: css-like font size and font (string) */
     function drawGroupRectangles(canvascontext, groupedNodes, rectParams) {
-        for(let value of Object.entries(groupedNodes)) { 
+        for(let value of Object.entries(groupedNodes)) {
             const rectangles = [];
             const xValues = [];
             const yValues = [];
@@ -456,16 +456,16 @@ const coordSaveCheckbox = document.querySelector('#id_save_coords')
             const rectSizeY = maxY - minY + 2*rectParams.paddingY;
 
             rectangles.push({
-                ctx: canvascontext, 
-                x: rectX, 
-                y: rectY, 
-                width: rectSizeX, 
-                height: rectSizeY, 
-                lineWidth: rectParams.lineWidth, 
-                color: rectParams.color, 
-                text: value[1][0][2], 
-                textPaddingX: rectParams.textPaddingX, 
-                textPaddingY: rectParams.textPaddingY, 
+                ctx: canvascontext,
+                x: rectX,
+                y: rectY,
+                width: rectSizeX,
+                height: rectSizeY,
+                lineWidth: rectParams.lineWidth,
+                color: rectParams.color,
+                text: value[1][0][2],
+                textPaddingX: rectParams.textPaddingX,
+                textPaddingY: rectParams.textPaddingY,
                 font: rectParams.font,
                 id: value[1][0][1],
                 category: rectParams.category
@@ -479,48 +479,48 @@ const coordSaveCheckbox = document.querySelector('#id_save_coords')
 
     let groupedNodeSites = combineNodeInfo('site_id', 'site');
     let siteRectParams = {
-        lineWidth: "3", 
+        lineWidth: "3",
         color: "red",
-        paddingX: 84, 
-        paddingY: 84, 
-        textPaddingX: 8, 
-        textPaddingY: -8, 
+        paddingX: 84,
+        paddingY: 84,
+        textPaddingX: 8,
+        textPaddingY: -8,
         font: "16px helvetica",
         category: "Site"
     }
-    
+
     let groupedNodeLocations = combineNodeInfo('location_id', 'location');
     let locationRectParams = {
-        lineWidth: "2", 
+        lineWidth: "2",
         color: "#337ab7",
-        paddingX: 77, 
-        paddingY: 77, 
-        textPaddingX: 22, 
-        textPaddingY: 29, 
+        paddingX: 77,
+        paddingY: 77,
+        textPaddingX: 22,
+        textPaddingY: 29,
         font: "15px helvetica",
         category: "Location"
     }
 
     let groupedNodeRacks = combineNodeInfo('rack_id', 'rack');
     let rackRectParams = {
-        lineWidth: "1", 
+        lineWidth: "1",
         color: "green",
-        paddingX: 70, 
-        paddingY: 70, 
-        textPaddingX: 15, 
-        textPaddingY: 36, 
+        paddingX: 70,
+        paddingY: 70,
+        textPaddingX: 15,
+        textPaddingY: 36,
         font: "14px helvetica",
         category: "Rack"
     }
 
     let groupedNodeVirtualchassis = combineNodeInfo('virtual_chassis_id', 'virtual_chassis');
     let virtualchassisRectParams = {
-        lineWidth: "1", 
+        lineWidth: "1",
         color: "orange",
-        paddingX: 63, 
-        paddingY: 63, 
-        textPaddingX: 8, 
-        textPaddingY: 43, 
+        paddingX: 63,
+        paddingY: 63,
+        textPaddingX: 8,
+        textPaddingY: 43,
         font: "14px helvetica",
         category: "Virtual Chassis"
     }
@@ -674,7 +674,7 @@ function performXmlDownload() {
         xml_search_options = new URLSearchParams(window.location.search);
     }
 
-    
+
 
     fetch('/' + basePath + 'api/plugins/topology-views/xml-export/?' + xml_search_options).then(response => response.text())
     .then(data => {
