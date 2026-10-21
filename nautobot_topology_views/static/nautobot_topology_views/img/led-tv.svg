@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- LED TV: a wide thin-bezel panel on a centre foot, the bezel's standby LED at
+     the lower right. Drawn in the same style as the existing icons: white disc,
+     #9cc8f8 rim, #1685fc line work at 1.323. -->
+<svg width="35.465557mm" height="35.465557mm" viewBox="0 0 35.465557 35.465557" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="17.732778" cy="17.732778" r="17.071318" style="fill:#ffffff;fill-opacity:1;stroke:#9cc8f8;stroke-width:1.32292;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+  <g style="fill:none;stroke:#1685fc;stroke-width:1.323;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1">
+    <!-- panel: outer bezel and the screen inset inside it -->
+    <rect x="7.4" y="9.6" width="20.665557" height="12.8" rx="0.9" ry="0.9" />
+    <rect x="9.1" y="11.2" width="17.265557" height="9.0" rx="0.3" ry="0.3" style="fill:#e3f0fd;stroke-width:0.9" />
+    <circle cx="25.6" cy="21.35" r="0.45" style="fill:#1685fc;stroke:none" />
+    <!-- foot: a short neck onto a flat base -->
+    <path d="M 17.732778,22.4 V 25.2" />
+    <path d="M 12.4,26.4 H 23.065557" />
+  </g>
+</svg>
