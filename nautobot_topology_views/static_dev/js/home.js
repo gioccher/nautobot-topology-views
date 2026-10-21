@@ -251,12 +251,10 @@ const coordSaveCheckbox = document.querySelector('#id_save_coords')
         Promise.allSettled(
             Object.entries(graph.getPositions(params.nodes)).map(
                 async ([nodeId, nodePosition]) => {
-                    if(!isNaN(parseInt(nodeId))) { 
-                        nodeKey = parseInt(nodeId);
-                    }
-                    else {
-                        nodeKey = nodeId;
-                    }
+                    // Node ids are strings: Nautobot primary keys are UUIDs, and the c/p/f prefixes
+                    // mark the other node kinds. parseInt turned a UUID that starts with a digit into
+                    // a bare number, so update() created a phantom node instead of moving the real one.
+                    nodeKey = nodeId;
 
                     try {
                         window.nodes.update({id: nodeKey, physics: false, x: nodePosition.x, y: nodePosition.y});
@@ -272,7 +270,7 @@ const coordSaveCheckbox = document.querySelector('#id_save_coords')
                         console.log(e);
                     }
                     const res = await fetch(
-                        '/' + basePath + 'api/plugins/nautobot_topology_views/save-coords/save_coords/',
+                        '/' + basePath + 'api/plugins/topology-views/save-coords/save_coords/',
                         {
                             method: 'PATCH',
                             headers: {
@@ -678,7 +676,7 @@ function performXmlDownload() {
 
     
 
-    fetch('/' + basePath + 'api/plugins/nautobot_topology_views/xml-export/?' + xml_search_options).then(response => response.text())
+    fetch('/' + basePath + 'api/plugins/topology-views/xml-export/?' + xml_search_options).then(response => response.text())
     .then(data => {
         var blob = new Blob([data ], { type: "text/plain" });
 
