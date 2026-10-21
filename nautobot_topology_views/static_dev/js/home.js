@@ -53,7 +53,7 @@ const options = {
             multi: 'md',
             face: 'helvetica',
             color:
-                document.documentElement.dataset.netboxColorMode === 'dark'
+                document.documentElement.dataset.bsTheme === 'dark'
                     ? '#fff'
                     : '#000'
         }
@@ -700,8 +700,8 @@ const observer = new MutationObserver((mutations) =>
             !(mutation.target instanceof HTMLElement)
         )
             return
-        const netboxColorMode = mutation.target.dataset.bsTheme
-        options.nodes.font.color = netboxColorMode === 'dark' ? '#fff' : '#000'
+        const bsTheme = mutation.target.dataset.bsTheme
+        options.nodes.font.color = bsTheme === 'dark' ? '#fff' : '#000'
         graph.setOptions(options)
     })
 )
