@@ -36,7 +36,7 @@ The app is available as a Python package and can be installed with Poetry.
 Add to your Nautobot's pyproject.toml:
 ```toml
 [tool.poetry.dependencies]
-nautobot-topology-views = "^4.5.1.3"
+nautobot-topology-views = "^4.5.1.4"
 ```
 
 Then run:
@@ -76,7 +76,7 @@ systemctl restart nautobot
 | Nautobot version | nautobot-topology-views version |
 | ---------------- | ------------------------------- |
 | = 3.1.X          | = v4.5.1.1                      |
-| = 3.2.X          | = v4.5.1.2  .. v4.5.1.3         |
+| = 3.2.X          | = v4.5.1.2 ... v4.5.1.4         |
 
 
 ## Configure

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nautobot-topology-views"
-version = "4.5.1.3"
+version = "4.5.1.4"
 description = "A Nautobot App to create Topology maps"
 readme = "README.md"
 authors = ["@mattieserver", "netbox-community", "@gioccher"]
