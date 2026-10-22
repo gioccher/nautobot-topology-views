@@ -12,5 +12,6 @@ router.register("coordinate", views.CoordinateViewSet)
 router.register("circuitcoordinate", views.CircuitCoordinateViewSet)
 router.register("powerpanelcoordinate", views.PowerPanelCoordinateViewSet)
 router.register("powerfeedcoordinate", views.PowerFeedCoordinateViewSet)
+router.register("virtualmachinecoordinate", views.VirtualMachineCoordinateViewSet)
 
 urlpatterns = router.urls

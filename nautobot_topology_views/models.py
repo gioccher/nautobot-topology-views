@@ -10,6 +10,7 @@ from nautobot.apps.models import PrimaryModel
 from nautobot.circuits.models import Circuit
 from nautobot.dcim.models import Device, PowerFeed, PowerPanel
 from nautobot.extras.models import ChangeLoggedModel, Role, Tag
+from nautobot.virtualization.models import VirtualMachine
 
 from nautobot_topology_views.choices import NodeLabelItems
 from nautobot_topology_views.utils import (
@@ -311,7 +312,56 @@ class PowerFeedCoordinate(PrimaryModel):
 
     def get_absolute_url(self):
         return reverse('plugins:nautobot_topology_views:powerfeedcoordinate', args=[self.pk])
-        return reverse('plugins:nautobot_topology_views:powerfeedcoordinate', args=[self.pk])
+
+class VirtualMachineCoordinate(PrimaryModel):
+    """
+    Coordinates for virtual machines. A VM is drawn hanging off the hosts of its
+    cluster and, like a device, keeps one position per coordinate group. The FK
+    is named `device` so the save-coords path and the tables treat every node
+    kind the same way.
+    """
+    device = models.ForeignKey(VirtualMachine, on_delete=models.CASCADE)
+    group = models.ForeignKey(CoordinateGroup, on_delete=models.CASCADE)
+
+    x = models.IntegerField(
+        help_text='X-coordinate of the virtual machine (horizontal) on the canvas. '
+            'Smaller values correspond to a position further to the left on the monitor.',
+    )
+    y = models.IntegerField(
+        help_text='Y-coordinate of the virtual machine (vertical) on the canvas. '
+            'Smaller values correspond to a position further up on the monitor.',
+    )
+
+    def get_or_create_default_group(group_id):
+        # Default group named "default" must always exist in order to make sure
+        # that coordinate values can be stored even if no coordinate group has been
+        # selected. The default group will be added automatically if it does not exist.
+        try:
+            if CoordinateGroup.objects.filter(name="default"):
+                group = CoordinateGroup.objects.get(name="default")
+                group_id = group.pk
+            else:
+                group = CoordinateGroup(
+                    name="default",
+                    description="Automatically generated default group. If you delete "
+                        "this group, all default coordinates are gone for good but "
+                        "the group itself will be re-created."
+                )
+                group.save()
+                group_id = group.pk
+        except:
+            return False
+        return group_id
+
+    class Meta:
+        ordering = ['group', 'device']
+        unique_together = ('device', 'group')
+
+    def __str__(self):
+        return f'{self.x};{self.y}'
+
+    def get_absolute_url(self):
+        return reverse('plugins:nautobot_topology_views:virtualmachinecoordinate', args=[self.pk])
 
 class IndividualOptions(PrimaryModel):
     CHOICES = (
@@ -372,6 +422,9 @@ class IndividualOptions(PrimaryModel):
         default=False
     )
     show_wireless = models.BooleanField(
+        default=False
+    )
+    show_virtual_machines = models.BooleanField(
         default=False
     )
     group_sites = models.BooleanField(

@@ -8,6 +8,7 @@ from nautobot.core.api.views import ModelViewSet as NautobotBaseViewSet
 from nautobot.circuits.models import Circuit
 from nautobot.dcim.models import Device, PowerFeed, PowerPanel
 from nautobot.extras.models import Role
+from nautobot.virtualization.models import VirtualMachine
 from django.conf import settings
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.contenttypes.models import ContentType
@@ -24,9 +25,10 @@ from nautobot_topology_views.api.serializers import (
     CircuitCoordinateSerializer,
     PowerPanelCoordinateSerializer,
     PowerFeedCoordinateSerializer,
+    VirtualMachineCoordinateSerializer,
 )
 import nautobot_topology_views.models
-from nautobot_topology_views.models import RoleImage, IndividualOptions, CoordinateGroup, Coordinate, CircuitCoordinate, PowerPanelCoordinate, PowerFeedCoordinate
+from nautobot_topology_views.models import RoleImage, IndividualOptions, CoordinateGroup, Coordinate, CircuitCoordinate, PowerPanelCoordinate, PowerFeedCoordinate, VirtualMachineCoordinate
 from nautobot_topology_views.views import get_topology_data
 from nautobot_topology_views.utils import get_image_from_url, export_data_to_xml, get_query_settings
 from nautobot_topology_views.filters import DeviceFilterSet
@@ -51,8 +53,8 @@ class SaveCoordsViewSet(ReadOnlyModelViewSet):
 
         actual_device = None
         model_name = None
-        # Device nodes use bare UUIDs; circuit, power-panel, and power-feed nodes
-        # use c/p/f prefixes. Parse UUIDs before querying so malformed node IDs
+        # Device nodes use bare UUIDs; circuit, power-panel, power-feed and
+        # virtual-machine nodes use c/p/f/v prefixes. Parse UUIDs before querying so malformed node IDs
         # return a 400 instead of raising during ORM field conversion.
         def _get_object(model, value):
             try:
@@ -69,6 +71,7 @@ class SaveCoordsViewSet(ReadOnlyModelViewSet):
                 "c": (Circuit, "CircuitCoordinate"),
                 "p": (PowerPanel, "PowerPanelCoordinate"),
                 "f": (PowerFeed, "PowerFeedCoordinate"),
+                "v": (VirtualMachine, "VirtualMachineCoordinate"),
             }
             model_and_name = prefixed_models.get(device_id[:1])
             if model_and_name is not None:
@@ -127,7 +130,7 @@ class ExportTopoToXML(ViewSet):
 
         if request.GET:
 
-            filter_id, ignore_cable_type, save_coords, show_unconnected, show_power, show_circuit, show_logical_connections, show_single_cable_logical_conns, show_cables, show_wireless, group_sites, group_locations, group_racks, group_virtualchassis, group, show_neighbors, straight_cables, draw_termination_labels, draw_cable_labels, grid_size, node_label_items = get_query_settings(request)
+            filter_id, ignore_cable_type, save_coords, show_unconnected, show_power, show_circuit, show_logical_connections, show_single_cable_logical_conns, show_cables, show_wireless, group_sites, group_locations, group_racks, group_virtualchassis, group, show_neighbors, straight_cables, draw_termination_labels, draw_cable_labels, grid_size, node_label_items, show_virtual_machines = get_query_settings(request)
 
             if 'group' not in request.query_params:
                 group_id = "default"
@@ -146,6 +149,7 @@ class ExportTopoToXML(ViewSet):
                 show_circuit=show_circuit,
                 show_power=show_power,
                 show_wireless=show_wireless,
+                show_virtual_machines=show_virtual_machines,
                 group_sites=group_sites,
                 group_locations=group_locations,
                 group_racks=group_racks,
@@ -257,3 +261,7 @@ class PowerPanelCoordinateViewSet(NautobotModelViewSet):
 class PowerFeedCoordinateViewSet(NautobotModelViewSet):
     queryset = PowerFeedCoordinate.objects.all()
     serializer_class = PowerFeedCoordinateSerializer
+
+class VirtualMachineCoordinateViewSet(NautobotModelViewSet):
+    queryset = VirtualMachineCoordinate.objects.all()
+    serializer_class = VirtualMachineCoordinateSerializer

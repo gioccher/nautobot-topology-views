@@ -7,6 +7,7 @@ from nautobot_topology_views.models import (
     CoordinateGroup,
     PowerFeedCoordinate,
     PowerPanelCoordinate,
+    VirtualMachineCoordinate,
 )
 
 
@@ -60,6 +61,21 @@ class PowerFeedCoordinateListTable(BaseTable):
 
     class Meta(BaseTable.Meta):
         model = PowerFeedCoordinate
+        fields = ('pk', 'id', 'group', 'device', 'x', 'y')
+        default_columns = ('id', 'group', 'device', 'x', 'y')
+
+class VirtualMachineCoordinateListTable(BaseTable):
+    group = tables.Column(
+        linkify=True
+    )
+
+    device = tables.Column(
+        linkify=True,
+        verbose_name='Virtual machine',
+    )
+
+    class Meta(BaseTable.Meta):
+        model = VirtualMachineCoordinate
         fields = ('pk', 'id', 'group', 'device', 'x', 'y')
         default_columns = ('id', 'group', 'device', 'x', 'y')
 

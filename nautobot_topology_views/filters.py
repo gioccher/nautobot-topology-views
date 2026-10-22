@@ -21,6 +21,7 @@ from nautobot.dcim.models import (
 )
 from nautobot.extras.models import Role
 from nautobot.tenancy.filter_mixins import TenancyModelFilterSetMixin
+from nautobot.virtualization.models import VirtualMachine
 
 from nautobot_topology_views.models import (
     CircuitCoordinate,
@@ -28,6 +29,7 @@ from nautobot_topology_views.models import (
     CoordinateGroup,
     PowerFeedCoordinate,
     PowerPanelCoordinate,
+    VirtualMachineCoordinate,
 )
 
 
@@ -211,6 +213,28 @@ class PowerFeedCoordinateFilterSet(NautobotFilterSet):
 
     class Meta:
         model = PowerFeedCoordinate
+        fields = ['id', 'group', 'device', 'x', 'y']
+
+    def search(self, queryset, name, value):
+        """Perform the filtered search."""
+        if not value.strip():
+            return queryset
+        return queryset.filter(
+            Q(group__name__icontains=value) |
+            Q(device__name__icontains=value)
+        )
+
+class VirtualMachineCoordinateFilterSet(NautobotFilterSet):
+    group = django_filters.ModelMultipleChoiceFilter(
+        queryset = CoordinateGroup.objects.all(),
+    )
+
+    device = django_filters.ModelMultipleChoiceFilter(
+        queryset = VirtualMachine.objects.all(),
+    )
+
+    class Meta:
+        model = VirtualMachineCoordinate
         fields = ['id', 'group', 'device', 'x', 'y']
 
     def search(self, queryset, name, value):

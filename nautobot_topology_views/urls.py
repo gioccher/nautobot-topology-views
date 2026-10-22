@@ -48,6 +48,15 @@ urlpatterns = (
     path("powerfeedcoordinate/<uuid:pk>/delete/", views.PowerFeedCoordinateDeleteView.as_view(), name="powerfeedcoordinate_delete"),
     path("powerfeedcoordinate/<uuid:pk>/changelog/", ObjectChangeLogView.as_view(), name="powerfeedcoordinate_changelog", kwargs={'model': models.PowerFeedCoordinate}),
 
+    # Virtual Machine Coordinate
+    path("virtualmachinecoordinate/", views.VirtualMachineCoordinateListView.as_view(), name="virtualmachinecoordinate_list"),
+    path("virtualmachinecoordinate/add/", views.VirtualMachineCoordinateAddView.as_view(), name="virtualmachinecoordinate_add"),
+    path('virtualmachinecoordinate/import/', views.VirtualMachineCoordinateBulkImportView.as_view(), name='virtualmachinecoordinate_import'),
+    path("virtualmachinecoordinate/<uuid:pk>/", views.VirtualMachineCoordinateView.as_view(), name="virtualmachinecoordinate"),
+    path("virtualmachinecoordinate/<uuid:pk>/edit/", views.VirtualMachineCoordinateEditView.as_view(), name="virtualmachinecoordinate_edit"),
+    path("virtualmachinecoordinate/<uuid:pk>/delete/", views.VirtualMachineCoordinateDeleteView.as_view(), name="virtualmachinecoordinate_delete"),
+    path("virtualmachinecoordinate/<uuid:pk>/changelog/", ObjectChangeLogView.as_view(), name="virtualmachinecoordinate_changelog", kwargs={'model': models.VirtualMachineCoordinate}),
+
     # Coordinate
     path("coordinate/", views.CoordinateListView.as_view(), name="coordinate_list"),
     path("coordinate/add/", views.CoordinateAddView.as_view(), name="coordinate_add"),

@@ -25,6 +25,7 @@ from nautobot.dcim.models import (
 from nautobot.extras.forms import LocalContextFilterForm
 from nautobot.extras.models import Role, Status
 from nautobot.tenancy.forms import TenancyFilterForm
+from nautobot.virtualization.models import VirtualMachine
 
 from nautobot_topology_views.choices import NodeLabelItems
 from nautobot_topology_views.models import (
@@ -34,6 +35,7 @@ from nautobot_topology_views.models import (
     IndividualOptions,
     PowerFeedCoordinate,
     PowerPanelCoordinate,
+    VirtualMachineCoordinate,
 )
 
 
@@ -50,7 +52,7 @@ class DeviceFilterForm(
         'show_logical_connections', 'show_single_cable_logical_conns', 'show_neighbors',
         'group_sites', 'group_locations', 'group_racks', 'group_virtualchassis', 'straight_cables',
         'draw_termination_labels', 'draw_cable_labels', 'grid_size', 'node_label_items',
-        'show_circuit', 'show_power',
+        'show_circuit', 'show_power', 'show_virtual_machines',
         'id',
         'location_id', 'rack_id',
         'status', 'role_id', 'serial', 'asset_tag', 'mac_address',
@@ -313,6 +315,13 @@ class DeviceFilterForm(
             choices=BOOLEAN_WITH_BLANK_CHOICES
         )
     )
+    show_virtual_machines = forms.NullBooleanField(
+        label=_('Show Virtual Machines'), required=False, initial=False,
+        help_text=_('Draws the virtual machines of every cluster a displayed device is assigned to, hanging off that device.'),
+        widget=forms.Select(
+            choices=BOOLEAN_WITH_BLANK_CHOICES
+        )
+    )
 
 class CoordinateGroupsForm(NautobotModelForm):
 
@@ -343,6 +352,12 @@ class PowerFeedCoordinatesForm(NautobotModelForm):
         model = PowerFeedCoordinate
         fields = ('group', 'device', 'x', 'y')
 
+class VirtualMachineCoordinatesForm(NautobotModelForm):
+
+    class Meta:
+        model = VirtualMachineCoordinate
+        fields = ('group', 'device', 'x', 'y')
+
 class CoordinatesForm(NautobotModelForm):
 
     class Meta:
@@ -362,6 +377,11 @@ class PowerPanelCoordinatesImportForm(CSVModelForm):
 class PowerFeedCoordinatesImportForm(CSVModelForm):
     class Meta:
         model = PowerFeedCoordinate
+        fields = ('group', 'device', 'x', 'y')
+
+class VirtualMachineCoordinatesImportForm(CSVModelForm):
+    class Meta:
+        model = VirtualMachineCoordinate
         fields = ('group', 'device', 'x', 'y')
 
 class CoordinatesImportForm(CSVModelForm):
@@ -422,6 +442,28 @@ class PowerFeedCoordinatesFilterForm(NautobotFilterForm):
     device = DynamicModelMultipleChoiceField(
         queryset=PowerFeed.objects.all(),
         required=False
+    )
+
+    x = forms.IntegerField(
+        required=False
+    )
+
+    y = forms.IntegerField(
+        required=False
+    )
+
+class VirtualMachineCoordinatesFilterForm(NautobotFilterForm):
+    model = VirtualMachineCoordinate
+
+    group = forms.ModelMultipleChoiceField(
+        queryset=CoordinateGroup.objects.all(),
+        required=False
+    )
+
+    device = DynamicModelMultipleChoiceField(
+        queryset=VirtualMachine.objects.all(),
+        required=False,
+        label=_('Virtual machine'),
     )
 
     x = forms.IntegerField(
@@ -508,6 +550,14 @@ class IndividualOptionsForm(NautobotModelForm):
         initial=False,
         help_text=_('Displays wireless connections. These connections are '
             'displayed as blue dotted lines.')
+    )
+    show_virtual_machines = forms.BooleanField(
+        label =_('Show Virtual Machines'),
+        required=False,
+        initial=False,
+        help_text=_('Draws the virtual machines of every cluster a displayed '
+            'device is assigned to, hanging off that device. The link is drawn '
+            'as a purple dashed line: the VM runs on the host, no cable exists.')
     )
     show_logical_connections = forms.BooleanField(
         label =_('Show Logical Connections'),
@@ -631,5 +681,5 @@ class IndividualOptionsForm(NautobotModelForm):
             'show_logical_connections', 'show_single_cable_logical_conns', 'show_neighbors',
             'group_sites', 'group_locations', 'group_racks', 'group_virtualchassis',
             'draw_default_layout', 'straight_cables', 'draw_termination_labels', 'draw_cable_labels',
-            'grid_size', 'node_label_items', 'show_circuit', 'show_power'
+            'grid_size', 'node_label_items', 'show_circuit', 'show_power', 'show_virtual_machines'
         ]

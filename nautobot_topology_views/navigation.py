@@ -59,6 +59,21 @@ menu_items = (
                         ),
                     ),
                     NavMenuItem(
+                        link="plugins:nautobot_topology_views:virtualmachinecoordinate_list",
+                        name="Virtual Machine Coords",
+                        permissions=["nautobot_topology_views.view_coordinate"],
+                        buttons=(
+                            NavMenuAddButton(
+                                link="plugins:nautobot_topology_views:virtualmachinecoordinate_add",
+                                permissions=["nautobot_topology_views.add_coordinate"],
+                            ),
+                            NavMenuImportButton(
+                                link="plugins:nautobot_topology_views:virtualmachinecoordinate_import",
+                                permissions=["nautobot_topology_views.add_coordinate"],
+                            ),
+                        ),
+                    ),
+                    NavMenuItem(
                         link="plugins:nautobot_topology_views:powerfeedcoordinate_list",
                         name="Power Feed Coords",
                         permissions=["nautobot_topology_views.view_coordinate"],

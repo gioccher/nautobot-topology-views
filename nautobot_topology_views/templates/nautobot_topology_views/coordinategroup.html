@@ -59,6 +59,14 @@
   </div>
   <div class="col col-md-12">
     <div class="card">
+      <h5 class="card-header">Virtual Machine Coordinates</h5>
+      <div class="card-body table-responsive">
+        {% render_table virtualmachinecoordinates_table 'inc/table.html' %}
+      </div>
+    </div>
+  </div>
+  <div class="col col-md-12">
+    <div class="card">
       <h5 class="card-header">Device Coordinates</h5>
       <div class="card-body table-responsive">
         {% render_table coordinates_table 'inc/table.html' %}

@@ -228,12 +228,18 @@ def get_query_settings(request):
     if "node_label_items" in request.GET:
         node_label_items = request.GET.getlist('node_label_items')
 
-    return filter_id, ignore_cable_type, save_coords, show_unconnected, show_power, show_circuit, show_logical_connections, show_single_cable_logical_conns, show_cables, show_wireless, group_sites, group_locations, group_racks, group_virtualchassis, group, show_neighbors, straight_cables, draw_termination_labels, draw_cable_labels, grid_size, node_label_items
+    show_virtual_machines = False
+    if "show_virtual_machines" in request.GET:
+        if request.GET["show_virtual_machines"] == "True":
+            show_virtual_machines = True
+
+    return filter_id, ignore_cable_type, save_coords, show_unconnected, show_power, show_circuit, show_logical_connections, show_single_cable_logical_conns, show_cables, show_wireless, group_sites, group_locations, group_racks, group_virtualchassis, group, show_neighbors, straight_cables, draw_termination_labels, draw_cable_labels, grid_size, node_label_items, show_virtual_machines
 
 class LinePattern():
     wireless = [2, 10, 2, 10]
     power = [5, 5, 3, 3]
     logical = [1, 10, 1, 10]
+    virtual = [8, 4, 2, 4]
 
 
 def export_data_to_xml(data: dict):
@@ -297,6 +303,8 @@ def export_data_to_xml(data: dict):
                 dashes = 'dashed=1;dashPattern=6 6;'
             if edge['dashes'] == LinePattern().logical:
                 dashes = 'dashed=1;dashPattern=1 4;strokeWidth=2;'
+            if edge['dashes'] == LinePattern().virtual:
+                dashes = 'dashed=1;dashPattern=8 4 2 4;'
 
         mxcell = doc.createElement('mxCell')
         mxcell.setAttribute('id', 'edge_' + str(edge['id']))
