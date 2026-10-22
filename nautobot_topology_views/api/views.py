@@ -129,37 +129,11 @@ class ExportTopoToXML(ViewSet):
         )
 
         if request.GET:
-
-            filter_id, ignore_cable_type, save_coords, show_unconnected, show_power, show_circuit, show_logical_connections, show_single_cable_logical_conns, show_cables, show_wireless, group_sites, group_locations, group_racks, group_virtualchassis, group, show_neighbors, straight_cables, draw_termination_labels, draw_cable_labels, grid_size, node_label_items, show_virtual_machines = get_query_settings(request)
-
-            if 'group' not in request.query_params:
-                group_id = "default"
-            else:
-                group_id = request.query_params["group"]
+            query_settings = get_query_settings(request)
             topo_data = get_topology_data(
                 queryset=self.queryset,
                 individualOptions=individualOptions,
-                ignore_cable_type=ignore_cable_type,
-                save_coords=save_coords,
-                show_unconnected=show_unconnected,
-                show_cables=show_cables,
-                show_logical_connections=show_logical_connections,
-                show_single_cable_logical_conns=show_single_cable_logical_conns,
-                show_neighbors=show_neighbors,
-                show_circuit=show_circuit,
-                show_power=show_power,
-                show_wireless=show_wireless,
-                show_virtual_machines=show_virtual_machines,
-                group_sites=group_sites,
-                group_locations=group_locations,
-                group_racks=group_racks,
-                group_virtualchassis=group_virtualchassis,
-                group_id=group_id,
-                straight_cables=straight_cables,
-                draw_termination_labels=draw_termination_labels,
-                draw_cable_labels=draw_cable_labels,
-                grid_size=grid_size,
-                node_label_items=node_label_items,
+                **query_settings.as_topology_kwargs(),
             )
             raw_xml = export_data_to_xml(topo_data)
             # export_data_to_xml returns bytes normally, but '' (str) when there is no
