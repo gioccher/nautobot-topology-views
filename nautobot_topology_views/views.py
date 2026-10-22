@@ -981,16 +981,10 @@ class TopologyHomeView(PermissionRequiredMixin, View):
         )
 
         if request.GET:
-
-            filter_id, ignore_cable_type, save_coords, show_unconnected, show_power, show_circuit, show_logical_connections, show_single_cable_logical_conns, show_cables, show_wireless, group_sites, group_locations, group_racks, group_virtualchassis, group, show_neighbors, straight_cables, draw_termination_labels, draw_cable_labels, grid_size, node_label_items, show_virtual_machines = get_query_settings(request)
+            query_settings = get_query_settings(request)
 
             filter_required = True
             empty_result = False
-
-            if not request.GET.get("group"):
-                group_id = "default"
-            else:
-                group_id = request.GET["group"]
 
             if not "draw_init" in request.GET or "draw_init" in request.GET and request.GET["draw_init"].lower() == "true":
                 filter_required = False
@@ -998,27 +992,7 @@ class TopologyHomeView(PermissionRequiredMixin, View):
                 topo_data = get_topology_data(
                     queryset=self.queryset,
                     individualOptions=individualOptions,
-                    ignore_cable_type=ignore_cable_type,
-                    save_coords=save_coords,
-                    show_unconnected=show_unconnected,
-                    show_cables=show_cables,
-                    show_logical_connections=show_logical_connections,
-                    show_single_cable_logical_conns=show_single_cable_logical_conns,
-                    show_neighbors=show_neighbors,
-                    show_circuit=show_circuit,
-                    show_power=show_power,
-                    show_wireless=show_wireless,
-                    show_virtual_machines=show_virtual_machines,
-                    group_sites=group_sites,
-                    group_locations=group_locations,
-                    group_racks=group_racks,
-                    group_virtualchassis=group_virtualchassis,
-                    group_id=group_id,
-                    straight_cables=straight_cables,
-                    draw_termination_labels=draw_termination_labels,
-                    draw_cable_labels=draw_cable_labels,
-                    grid_size=grid_size,
-                    node_label_items=node_label_items,
+                    **query_settings.as_topology_kwargs(),
                 )
 
                 if topo_data is None or not topo_data["nodes"]:
@@ -1097,53 +1071,19 @@ class LocationTopologyView(PermissionRequiredMixin, View):
 
         individualOptions, _ = IndividualOptions.objects.get_or_create(user=request.user)
 
-        # Build filter query dict with location pre-applied
-        q = QueryDict(mutable=True)
+        # Preserve submitted filters and options while ensuring the tab remains scoped to this location.
+        q = request.GET.copy()
         q.setlist("location_id", [str(pk)])
 
         queryset = Device.objects.restrict(request.user, "view").select_related("device_type", "role")
         queryset = DeviceFilterSet(q, queryset).qs
 
-        # Resolve display options from IndividualOptions
-        save_coords = individualOptions.save_coords
-        if save_coords and not settings.PLUGINS_CONFIG["nautobot_topology_views"]["allow_coordinates_saving"]:
-            save_coords = False
-            messages.warning(request, "Coordinate saving not allowed. Setting has been overridden")
-        elif settings.PLUGINS_CONFIG["nautobot_topology_views"]["always_save_coordinates"]:
-            save_coords = True
-
-        ignore_cable_type = individualOptions.ignore_cable_type.translate({ord(i): None for i in "[]'"}).split(", ")
-        if ignore_cable_type == [""]:
-            ignore_cable_type = []
-
-        node_label_items = individualOptions.node_label_items.translate({ord(i): None for i in "[]'"}).split(", ")
-        if node_label_items == [""]:
-            node_label_items = []
+        query_settings = get_query_settings(request, individual_options=individualOptions)
 
         topo_data = get_topology_data(
             queryset=queryset,
             individualOptions=individualOptions,
-            ignore_cable_type=ignore_cable_type,
-            save_coords=save_coords,
-            show_unconnected=individualOptions.show_unconnected,
-            show_cables=individualOptions.show_cables,
-            show_logical_connections=individualOptions.show_logical_connections,
-            show_single_cable_logical_conns=individualOptions.show_single_cable_logical_conns,
-            show_neighbors=individualOptions.show_neighbors,
-            show_circuit=individualOptions.show_circuit,
-            show_power=individualOptions.show_power,
-            show_wireless=individualOptions.show_wireless,
-            show_virtual_machines=individualOptions.show_virtual_machines,
-            group_sites=individualOptions.group_sites,
-            group_locations=individualOptions.group_locations,
-            group_racks=individualOptions.group_racks,
-            group_virtualchassis=individualOptions.group_virtualchassis,
-            group_id="default",
-            straight_cables=individualOptions.straight_cables,
-            draw_termination_labels=individualOptions.draw_termination_labels,
-            draw_cable_labels=individualOptions.draw_cable_labels,
-            grid_size=individualOptions.grid_size,
-            node_label_items=node_label_items,
+            **query_settings.as_topology_kwargs(),
         )
 
         empty_result = topo_data is None or not topo_data.get("nodes")

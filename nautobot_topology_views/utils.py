@@ -2,7 +2,7 @@ import base64
 import re
 import sys
 import xml.dom.minidom
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 from typing import Type
@@ -120,122 +120,124 @@ def get_model_role(model: Type[Model]) -> RoleData:
         name=re_camel_case.sub(r" \1", model.__name__),
     )
 
-def get_query_settings(request):
-    filter_id = ''
-    if "filter_id" in request.GET:
-        filter_id = request.GET["filter_id"]
 
-    save_coords = False
-    if "save_coords" in request.GET:
-        if request.GET["save_coords"] == "True":
-            save_coords = True
-    # General options overrides
-    if save_coords == True and settings.PLUGINS_CONFIG["nautobot_topology_views"]["allow_coordinates_saving"] == False:
-        save_coords = False
+@dataclass
+class TopologyQuerySettings:
+    filter_id: str = ""
+    ignore_cable_type: list[str] = field(default_factory=list)
+    save_coords: bool = False
+    show_unconnected: bool = False
+    show_power: bool = False
+    show_circuit: bool = False
+    show_logical_connections: bool = False
+    show_single_cable_logical_conns: bool = False
+    show_cables: bool = False
+    show_wireless: bool = False
+    group_sites: bool = False
+    group_locations: bool = False
+    group_racks: bool = False
+    group_virtualchassis: bool = False
+    group: str = ""
+    show_neighbors: bool = False
+    straight_cables: bool = False
+    draw_termination_labels: bool = False
+    draw_cable_labels: bool = False
+    grid_size: int | list[str] = 0
+    node_label_items: list[str] = field(default_factory=list)
+    show_virtual_machines: bool = False
+
+    def as_topology_kwargs(self):
+        return {
+            "ignore_cable_type": self.ignore_cable_type,
+            "save_coords": self.save_coords,
+            "show_unconnected": self.show_unconnected,
+            "show_cables": self.show_cables,
+            "show_logical_connections": self.show_logical_connections,
+            "show_single_cable_logical_conns": self.show_single_cable_logical_conns,
+            "show_neighbors": self.show_neighbors,
+            "show_circuit": self.show_circuit,
+            "show_power": self.show_power,
+            "show_wireless": self.show_wireless,
+            "show_virtual_machines": self.show_virtual_machines,
+            "group_sites": self.group_sites,
+            "group_locations": self.group_locations,
+            "group_racks": self.group_racks,
+            "group_virtualchassis": self.group_virtualchassis,
+            "group_id": self.group or "default",
+            "straight_cables": self.straight_cables,
+            "draw_termination_labels": self.draw_termination_labels,
+            "draw_cable_labels": self.draw_cable_labels,
+            "grid_size": self.grid_size,
+            "node_label_items": self.node_label_items,
+        }
+
+
+def _stored_list(value: str) -> list[str]:
+    values = value.translate({ord(character): None for character in "[]'"}).split(", ")
+    return [] if values == [""] else values
+
+
+def get_query_settings(request, individual_options=None) -> TopologyQuerySettings:
+    if not request.GET and individual_options is not None:
+        query_settings = TopologyQuerySettings(
+            ignore_cable_type=_stored_list(individual_options.ignore_cable_type),
+            save_coords=individual_options.save_coords,
+            show_unconnected=individual_options.show_unconnected,
+            show_power=individual_options.show_power,
+            show_circuit=individual_options.show_circuit,
+            show_logical_connections=individual_options.show_logical_connections,
+            show_single_cable_logical_conns=individual_options.show_single_cable_logical_conns,
+            show_cables=individual_options.show_cables,
+            show_wireless=individual_options.show_wireless,
+            group_sites=individual_options.group_sites,
+            group_locations=individual_options.group_locations,
+            group_racks=individual_options.group_racks,
+            group_virtualchassis=individual_options.group_virtualchassis,
+            show_neighbors=individual_options.show_neighbors,
+            straight_cables=individual_options.straight_cables,
+            draw_termination_labels=individual_options.draw_termination_labels,
+            draw_cable_labels=individual_options.draw_cable_labels,
+            grid_size=individual_options.grid_size,
+            node_label_items=_stored_list(individual_options.node_label_items),
+            show_virtual_machines=individual_options.show_virtual_machines,
+        )
+    else:
+        query_settings = TopologyQuerySettings(
+            filter_id=request.GET.get("filter_id", ""),
+            ignore_cable_type=request.GET.getlist("ignore_cable_type"),
+            save_coords=request.GET.get("save_coords") == "True",
+            show_unconnected=request.GET.get("show_unconnected") == "True",
+            show_power=request.GET.get("show_power") == "True",
+            show_circuit=request.GET.get("show_circuit") == "True",
+            show_logical_connections=request.GET.get("show_logical_connections") == "True",
+            show_single_cable_logical_conns=request.GET.get("show_single_cable_logical_conns") == "True",
+            show_cables=request.GET.get("show_cables") == "True",
+            show_wireless=request.GET.get("show_wireless") == "True",
+            group_sites=request.GET.get("group_sites") == "True",
+            group_locations=request.GET.get("group_locations") == "True",
+            group_racks=request.GET.get("group_racks") == "True",
+            group_virtualchassis=request.GET.get("group_virtualchassis") == "True",
+            group=request.GET.get("group", ""),
+            show_neighbors=request.GET.get("show_neighbors") == "True",
+            straight_cables=request.GET.get("straight_cables") == "True",
+            draw_termination_labels=request.GET.get("draw_termination_labels") == "True",
+            draw_cable_labels=request.GET.get("draw_cable_labels") == "True",
+            grid_size=request.GET.getlist("grid_size") if "grid_size" in request.GET else 0,
+            node_label_items=request.GET.getlist("node_label_items"),
+            show_virtual_machines=request.GET.get("show_virtual_machines") == "True",
+        )
+
+    plugin_settings = settings.PLUGINS_CONFIG["nautobot_topology_views"]
+    if query_settings.save_coords and not plugin_settings["allow_coordinates_saving"]:
+        query_settings.save_coords = False
         messages.warning(request, "Coordinate saving not allowed. Setting has been overridden")
-    elif settings.PLUGINS_CONFIG["nautobot_topology_views"]["always_save_coordinates"] == True:
-        save_coords = True
+    elif plugin_settings["always_save_coordinates"]:
+        query_settings.save_coords = True
 
-    # Individual options
-    ignore_cable_type = ()
-    if "ignore_cable_type" in request.GET:
-        ignore_cable_type = request.GET.getlist('ignore_cable_type')
+    return query_settings
 
-    show_unconnected = False
-    if "show_unconnected" in request.GET:
-        if request.GET["show_unconnected"] == "True":
-            show_unconnected = True
 
-    show_power = False
-    if "show_power" in request.GET:
-        if request.GET["show_power"] == "True":
-            show_power = True
-
-    show_circuit = False
-    if "show_circuit" in request.GET:
-        if request.GET["show_circuit"] == "True":
-            show_circuit = True
-
-    show_logical_connections = False
-    if "show_logical_connections" in request.GET:
-        if request.GET["show_logical_connections"] == "True" :
-            show_logical_connections = True
-
-    show_single_cable_logical_conns = False
-    if "show_single_cable_logical_conns" in request.GET:
-        if request.GET["show_single_cable_logical_conns"] == "True" :
-            show_single_cable_logical_conns = True
-
-    show_cables = False
-    if "show_cables" in request.GET:
-        if request.GET["show_cables"] == "True" :
-            show_cables = True
-
-    show_wireless = False
-    if "show_wireless" in request.GET:
-        if request.GET["show_wireless"] == "True" :
-            show_wireless = True
-
-    group_sites = False
-    if "group_sites" in request.GET:
-        if request.GET["group_sites"] == "True" :
-            group_sites = True
-
-    group_locations = False
-    if "group_locations" in request.GET:
-        if request.GET["group_locations"] == "True" :
-            group_locations = True
-
-    group_racks = False
-    if "group_racks" in request.GET:
-        if request.GET["group_racks"] == "True" :
-            group_racks = True
-
-    group_virtualchassis = False
-    if "group_virtualchassis" in request.GET:
-        if request.GET["group_virtualchassis"] == "True" :
-            group_virtualchassis = True
-
-    group = False
-    if "group" in request.GET:
-        group = request.GET["group"]
-
-    show_neighbors = False
-    if "show_neighbors" in request.GET:
-        if request.GET["show_neighbors"] == "True" :
-            show_neighbors = True
-
-    straight_cables = False
-    if "straight_cables" in request.GET:
-        if request.GET["straight_cables"] == "True":
-            straight_cables = True
-
-    draw_termination_labels = False
-    if "draw_termination_labels" in request.GET:
-        if request.GET["draw_termination_labels"] == "True":
-            draw_termination_labels = True
-
-    draw_cable_labels = False
-    if "draw_cable_labels" in request.GET:
-        if request.GET["draw_cable_labels"] == "True":
-            draw_cable_labels = True
-
-    grid_size = 0
-    if "grid_size" in request.GET:
-        grid_size = request.GET.getlist('grid_size')
-
-    node_label_items = ()
-    if "node_label_items" in request.GET:
-        node_label_items = request.GET.getlist('node_label_items')
-
-    show_virtual_machines = False
-    if "show_virtual_machines" in request.GET:
-        if request.GET["show_virtual_machines"] == "True":
-            show_virtual_machines = True
-
-    return filter_id, ignore_cable_type, save_coords, show_unconnected, show_power, show_circuit, show_logical_connections, show_single_cable_logical_conns, show_cables, show_wireless, group_sites, group_locations, group_racks, group_virtualchassis, group, show_neighbors, straight_cables, draw_termination_labels, draw_cable_labels, grid_size, node_label_items, show_virtual_machines
-
-class LinePattern():
+class LinePattern:
     wireless = [2, 10, 2, 10]
     power = [5, 5, 3, 3]
     logical = [1, 10, 1, 10]
